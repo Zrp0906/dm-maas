@@ -1,0 +1,18 @@
+# Device delivery files and hardware settings kept locally
+/airbot/
+/dos_w1/
+/mirror-cameras/local/
+/mirror_config.py
+
+# macOS metadata
+.DS_Store
+
+# Python caches and virtual environments
+__pycache__/
+*.py[cod]
+.venv/
+
+# Local environment configuration
+.env
+.env.*
+!.env.example

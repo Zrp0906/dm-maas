@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mirror 真机控制台</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      color: #eef3fb;
+      background: #0e131d;
+      --surface: #171f2d;
+      --inset: #101723;
+      --border: #2b3649;
+      --muted: #a7b6cc;
+      --blue: #8eb8ff;
+      --green: #66e0b3;
+      --amber: #f7cf86;
+      --red: #ffaaa4;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; }
+    button, textarea, input { font: inherit; }
+    button, textarea, input { border-radius: 7px; }
+    button:focus-visible, textarea:focus-visible, input:focus-visible {
+      outline: 2px solid var(--blue);
+      outline-offset: 3px;
+    }
+    .topbar { border-bottom: 1px solid var(--border); background: #121a27; }
+    .topbar-inner, main { max-width: 1440px; margin: auto; padding: 0 32px; }
+    .topbar-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 18px; min-height: 80px;
+    }
+    .identity { display: flex; align-items: center; gap: 15px; }
+    .mark {
+      display: grid; place-items: center; width: 39px; height: 39px;
+      border: 1px solid #46689c; border-radius: 9px; background: #243a60;
+      color: #d2e2ff; font-size: 19px; font-weight: 700;
+    }
+    h1, h2, h3, p, figure { margin: 0; }
+    h1 { font-size: 19px; line-height: 1.45; }
+    h2 { font-size: 17px; }
+    .subtitle { margin-top: 1px; color: var(--muted); font-size: 12px; }
+    .pills { display: flex; flex-wrap: wrap; gap: 8px; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 7px; padding: 6px 10px;
+      border: 1px solid var(--border); border-radius: 6px;
+      color: var(--muted); font-size: 12px; white-space: nowrap;
+    }
+    .pill[data-tone="green"] { color: var(--green); }
+    .pill[data-tone="amber"] { color: var(--amber); }
+    .pill[data-tone="red"] { color: var(--red); }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    main { padding-top: 27px; padding-bottom: 36px; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 306px; gap: 20px; align-items: start; }
+    .section-heading {
+      display: flex; justify-content: space-between; gap: 10px;
+      align-items: center; min-height: 30px; margin-bottom: 12px;
+    }
+    .camera-grid { display: grid; grid-template-columns: 1.75fr 1fr; gap: 12px; }
+    .camera {
+      display: flex; flex-direction: column; min-width: 0;
+      border: 1px solid var(--border); border-radius: 9px; overflow: hidden;
+      background: var(--surface);
+    }
+    .camera:first-child { grid-row: span 2; }
+    .image {
+      position: relative; display: grid; flex: 1; place-items: center;
+      min-height: 122px; aspect-ratio: 2.05; background: #0b1019;
+      color: var(--muted); font-size: 13px;
+    }
+    .camera:first-child .image { aspect-ratio: 1.29; }
+    .image img { position: absolute; width: 100%; height: 100%; object-fit: contain; }
+    .camera figcaption {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+      gap: 3px 8px; padding: 9px 11px; font-size: 13px; font-weight: 600;
+    }
+    .serial, .time { color: var(--muted); font: 11px "IBM Plex Mono", ui-monospace, monospace; }
+    .panel {
+      border: 1px solid var(--border); border-radius: 9px;
+      background: var(--surface); padding: 17px;
+    }
+    .panel h2 { margin-bottom: 15px; }
+    .field { display: grid; gap: 7px; margin-bottom: 13px; }
+    .field label { color: #dbe5f4; font-size: 13px; font-weight: 600; }
+    textarea, input {
+      width: 100%; border: 1px solid #3b4a63; padding: 9px 10px;
+      color: inherit; background: var(--inset); font-size: 14px;
+    }
+    textarea { min-height: 91px; resize: vertical; line-height: 1.45; }
+    textarea::placeholder { color: #8b9bb4; }
+    .duration { width: 105px; }
+    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin: 17px 0 12px; }
+    button { cursor: pointer; padding: 9px 8px; font-weight: 700; font-size: 13px; }
+    .start { border: 1px solid var(--blue); background: var(--blue); color: #11213e; }
+    .stop { border: 1px solid #855951; color: var(--red); background: #322328; }
+    button:disabled { opacity: .47; cursor: default; }
+    button:not(:disabled):hover { filter: brightness(1.16); }
+    .hint { color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .feedback { color: var(--amber); font-size: 12px; line-height: 1.6; margin-top: 9px; }
+    .feedback:empty { display: none; }
+    .stats {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 15px; padding-top: 12px; border-top: 1px solid var(--border);
+      color: var(--muted); font-size: 12px;
+    }
+    .stats output { font-weight: 700; color: var(--blue); font-variant-numeric: tabular-nums; }
+    .events { margin-top: 17px; }
+    .events h2 { margin-bottom: 10px; }
+    .events ul { list-style: none; padding: 0; margin: 0; }
+    .events li {
+      display: flex; align-items: baseline; gap: 11px; padding: 7px 0;
+      border-top: 1px solid var(--border); font-size: 13px;
+    }
+    .events li:first-child { border-top: 0; }
+    .time { white-space: nowrap; }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 560px) {
+      .topbar-inner, main { padding-right: 15px; padding-left: 15px; }
+      .topbar-inner { align-items: flex-start; flex-direction: column; padding-top: 13px; padding-bottom: 13px; }
+      .camera-grid { grid-template-columns: 1fr 1fr; }
+      .camera:first-child { grid-column: span 2; grid-row: auto; }
+      .camera:first-child .image { aspect-ratio: 1.45; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="identity">
+        <span class="mark" aria-hidden="true">M</span>
+        <div><h1>Mirror 真机控制台</h1><p class="subtitle">DOS W1 · DM0.5</p></div>
+      </div>
+      <div class="pills">
+        <span class="pill" id="mode" hidden></span>
+        <span class="pill" id="phase" data-tone="amber" role="status"><span class="dot"></span><span id="phase-text">正在连接</span></span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="layout">
+      <section aria-labelledby="cameras-heading">
+        <div class="section-heading">
+          <h2 id="cameras-heading">相机画面</h2>
+          <span class="pill" id="camera-count">0 / 3 路可用</span>
+        </div>
+        <div class="camera-grid">
+          <figure class="camera" data-camera="cam_high">
+            <div class="image"><span>等待相机画面</span><img alt="主视角画面" hidden></div>
+            <figcaption>主视角 <span class="serial"></span></figcaption>
+          </figure>
+          <figure class="camera" data-camera="cam_left_wrist">
+            <div class="image"><span>等待相机画面</span><img alt="左腕画面" hidden></div>
+            <figcaption>左腕 <span class="serial"></span></figcaption>
+          </figure>
+          <figure class="camera" data-camera="cam_right_wrist">
+            <div class="image"><span>等待相机画面</span><img alt="右腕画面" hidden></div>
+            <figcaption>右腕 <span class="serial"></span></figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="task-heading">
+        <h2 id="task-heading">控制推理</h2>
+        <form id="task">
+          <div class="field">
+            <label for="prompt">抓取指令</label>
+            <textarea id="prompt" maxlength="8192" placeholder="Pick up the red cube." required></textarea>
+          </div>
+          <div class="field duration">
+            <label for="seconds">时限（秒）</label>
+            <input id="seconds" type="number" min="1" max="600" step="1" value="15" required>
+          </div>
+          <div class="actions">
+            <button type="submit" class="start" id="start" disabled>开始推理</button>
+            <button type="button" class="stop" id="stop" disabled>停止并回零</button>
+          </div>
+          <p class="hint" id="hardware-hint">开始和正常停止时双臂会回零。紧急情况使用现场实体急停。</p>
+          <p class="feedback" id="feedback" role="alert"></p>
+        </form>
+        <div class="stats"><span>收到动作批次</span><output id="horizons">0</output></div>
+      </section>
+    </div>
+
+    <section class="panel events" aria-labelledby="events-heading">
+      <h2 id="events-heading">运行记录</h2>
+      <ul id="events"></ul>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const cameras = [...document.querySelectorAll("[data-camera]")];
+    const phases = {
+      idle: ["待机", "green"],
+      starting: ["正在启动", "amber"],
+      running: ["推理中", "green"],
+      stopping: ["正在停止", "amber"],
+      homing: ["正在回零", "amber"],
+      error: ["任务失败", "red"],
+      locked: ["需要现场检查", "red"]
+    };
+    let status;
+    let sending = false;
+    let revision = 0;
+    let polling = true;
+
+    function setButtons() {
+      const active = ["starting", "running", "stopping", "homing"].includes(status?.phase);
+      const camerasReady = Object.values(status?.cameras ?? {}).filter((cam) => cam.available).length === 3;
+      $("start").disabled = !polling || sending || active || !camerasReady || status?.phase === "locked";
+      $("stop").disabled = !polling || sending || !["starting", "running"].includes(status?.phase);
+      $("prompt").disabled = active;
+      $("seconds").disabled = active;
+    }
+
+    function render(next) {
+      status = next;
+      const [label, tone] = next.closing ? ["控制台正在退出", "amber"] : phases[next.phase];
+      $("phase-text").textContent = label;
+      $("phase").dataset.tone = tone;
+      $("mode").hidden = false;
+      $("mode").textContent = next.demo ? "模拟模式" : "真机模式";
+      $("mode").dataset.tone = next.demo ? "amber" : "green";
+      $("hardware-hint").textContent = next.demo
+        ? "模拟任务使用三路合成示例画面。"
+        : "开始、点击「停止并回零」或在工控机终端按 Ctrl+C 正常退出时，双臂会回零。紧急情况使用现场实体急停。";
+      $("horizons").value = next.horizons;
+      const count = Object.values(next.cameras).filter((cam) => cam.available).length;
+      $("camera-count").textContent = `${count} / 3 路可用`;
+      $("camera-count").dataset.tone = count === 3 ? "green" : "amber";
+      $("events").replaceChildren(...next.events.map(({ time, message }) => {
+        const row = document.createElement("li");
+        const stamp = document.createElement("span");
+        const text = document.createElement("span");
+        stamp.className = "time";
+        stamp.textContent = time;
+        text.textContent = message;
+        row.append(stamp, text);
+        return row;
+      }));
+      if (next.closing) {
+        endPreview("控制台正在退出。请查看工控机终端的退出结果。");
+      }
+      setButtons();
+    }
+
+    function clearImage(card) {
+      const img = card.querySelector("img");
+      const oldUrl = img.getAttribute("src");
+      img.hidden = true;
+      img.previousElementSibling.hidden = false;
+      img.removeAttribute("src");
+      if (oldUrl) URL.revokeObjectURL(oldUrl);
+    }
+
+    function endPreview(message) {
+      polling = false;
+      $("camera-count").textContent = "预览已结束";
+      $("camera-count").dataset.tone = "amber";
+      cameras.forEach(clearImage);
+      $("feedback").textContent = message;
+      setButtons();
+    }
+
+    async function updateImage(card, camera) {
+      const img = card.querySelector("img");
+      const placeholder = img.previousElementSibling;
+      const previous = img.getAttribute("src");
+      card.querySelector(".serial").textContent = camera.serial;
+      if (!camera.available) {
+        clearImage(card);
+        return;
+      }
+      if (status.demo && previous) {
+        img.hidden = false;
+        placeholder.hidden = true;
+        return;
+      }
+      try {
+        const res = await fetch(`/camera/${card.dataset.camera}.jpg`, { cache: "no-store" });
+        if (!res.ok) return;
+        const blob = await res.blob();
+        if (!polling) return;
+        img.src = URL.createObjectURL(blob);
+        img.hidden = false;
+        placeholder.hidden = true;
+        if (previous) URL.revokeObjectURL(previous);
+      } catch {
+        // The next status refresh will retry.
+      }
+    }
+
+    async function poll() {
+      if (!polling) return;
+      const requested = revision;
+      try {
+        const res = await fetch("/api/status", { cache: "no-store" });
+        if (!res.ok) throw new Error();
+        const next = await res.json();
+        if (next.closing || (requested === revision && !sending)) {
+          render(next);
+          if (polling) {
+            await Promise.all(cameras.map((card) => updateImage(card, next.cameras[card.dataset.camera])));
+          }
+        }
+      } catch {
+        if (polling) {
+          status = undefined;
+          $("phase-text").textContent = "连接中断";
+          $("phase").dataset.tone = "red";
+          endPreview("连接已断开。启动服务后请刷新页面。");
+        }
+      } finally {
+        if (polling) setTimeout(poll, 600);
+      }
+    }
+
+    async function command(path, body = {}) {
+      sending = true;
+      revision += 1;
+      $("feedback").textContent = "";
+      setButtons();
+      try {
+        const res = await fetch(path, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+        const next = await res.json();
+        if (!res.ok) throw new Error(next.error || "操作失败。");
+        if (polling || next.closing) render(next);
+      } catch (error) {
+        $("feedback").textContent = error.message;
+      } finally {
+        sending = false;
+        setButtons();
+      }
+    }
+
+    $("task").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const prompt = $("prompt").value.trim();
+      if (!prompt) {
+        $("feedback").textContent = "请输入抓取指令。";
+        $("prompt").focus();
+        return;
+      }
+      command("/api/start", { prompt, seconds: $("seconds").valueAsNumber });
+    });
+    $("stop").addEventListener("click", () => command("/api/stop"));
+    poll();
+  </script>
+</body>
+</html>
