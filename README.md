@@ -1,6 +1,6 @@
 # DM0.5 在 Mirror（DOS W1）上的部署与控制
 
-本项目提供 Dexmal Mirror 的部署指南和本地网页控制台。Mirror 工控机通过 DexOS Lite 调用 MaaS 的 `dm05` 模型，网页显示主视角和左右腕画面，可填写抓取指令和时限，并查看任务运行记录。
+本项目提供 Dexmal Mirror 的部署指南和本地网页控制台。Mirror 工控机通过 DexOS Lite 调用 MaaS 模型，默认使用 `dm05`，也可在启动控制台时通过 `--model-id` 指定已部署的微调模型。网页显示当前模型 ID、主视角、左右腕画面和运行记录，并可设置指令和时限。
 
 ## 快速体验
 
@@ -25,5 +25,6 @@ python3 mirror-console/server.py --demo
 ## 项目文件
 
 - [`DM05_Mirror_部署与执行.md`](DM05_Mirror_部署与执行.md) 包含安装、相机配置、推理、回零及日常使用步骤。
+- [`MaaS_Mirror_全流程.md`](MaaS_Mirror_全流程.md) 包含数据采集与上传、SFT 和 DAgger 训练、真机对照测试，以及 RECAP 的数据和价值标注流程。
 - [`mirror-console/`](mirror-console/) 包含控制台页面和运行在工控机上的 Python 服务。
 - [`mirror-cameras/`](mirror-cameras/) 包含模拟模式使用的合成画面。

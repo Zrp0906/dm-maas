@@ -19,6 +19,7 @@ from time import monotonic, sleep, strftime
 
 
 DIRECTORY = Path(__file__).resolve().parent
+DEFAULT_MODEL_ID = "dm05"
 CAMERAS = ("cam_high", "cam_left_wrist", "cam_right_wrist")
 FRAME_MAX_AGE = 2
 ACTIVE_PHASES = {"starting", "running", "stopping", "homing"}
@@ -90,9 +91,10 @@ class CameraForInference:
 
 
 class MirrorBackend:
-    def __init__(self, config_path):
+    def __init__(self, config_path, model_id=DEFAULT_MODEL_ID):
         from dexos_lite.robot import MirrorRobot, load_robot_config
 
+        self.model_id = model_id
         self.robot = load_robot_config(str(config_path))
         if not isinstance(self.robot, MirrorRobot) or not set(CAMERAS).issubset(self.robot.sensors):
             raise ValueError("请使用包含主视角、左腕和右腕的 MirrorRobot 配置。")
@@ -130,7 +132,7 @@ class MirrorBackend:
         infer_robot_continuous(
             self.robot,
             client,
-            model_id="dm05",
+            model_id=self.model_id,
             prompt=prompt,
             should_stop=lambda: (
                 abort.is_set() or monotonic() >= deadline or len(self.frames()) != len(CAMERAS)
@@ -161,7 +163,8 @@ class DemoBackend:
         "cam_right_wrist": "demo-right-wrist",
     }
 
-    def __init__(self):
+    def __init__(self, model_id=DEFAULT_MODEL_ID):
+        self.model_id = model_id
         photos = DIRECTORY.parent / "mirror-cameras"
         self.images = {
             name: (photos / f"{label}.jpg").read_bytes() for name, label in self.serials.items()
@@ -213,6 +216,7 @@ class Console:
         with self.lock:
             return {
                 "demo": self.demo,
+                "model_id": self.backend.model_id,
                 "phase": self.phase,
                 "closing": self.closed,
                 "cameras": {
@@ -246,7 +250,7 @@ class Console:
             if not self.abort.is_set():
                 self.needs_home = True
                 self.phase = "running"
-                self.record("正在模拟推理" if self.demo else "已开始 DM0.5 推理")
+                self.record("正在模拟推理" if self.demo else f"已开始推理 · {self.backend.model_id}")
 
     def received(self, action_count):
         with self.lock:
@@ -430,9 +434,13 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--robot-config", type=Path, default=Path.home() / "mirror_config.py")
+    parser.add_argument("--model-id", default=DEFAULT_MODEL_ID, help="MaaS 模型 ID（默认：%(default)s）")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--demo", action="store_true")
     args = parser.parse_args()
+    model_id = args.model_id.strip()
+    if not model_id or any(char.isspace() for char in model_id):
+        parser.error("--model-id 指定一个模型 ID，且不能包含空白字符。")
     if not args.demo and not os.environ.get("DEXOS_API_KEY"):
         parser.error("请先在工控机的当前终端设置 DEXOS_API_KEY。")
     logging.basicConfig(level=logging.INFO)
@@ -447,7 +455,10 @@ def main():
     signal.signal(signal.SIGINT, interrupt)
     signal.signal(signal.SIGTERM, interrupt)
     with ThreadingHTTPServer(("127.0.0.1", args.port), Handler) as server:
-        backend = DemoBackend() if args.demo else MirrorBackend(args.robot_config.expanduser())
+        if args.demo:
+            backend = DemoBackend(model_id)
+        else:
+            backend = MirrorBackend(args.robot_config.expanduser(), model_id)
         server.console = Console(backend, args.demo)
         # Keep the status endpoint available during shutdown so the browser can stop polling.
         listener = Thread(
