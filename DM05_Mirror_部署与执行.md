@@ -217,7 +217,15 @@ export DEXOS_API_KEY
 python ~/mirror-console/server.py --robot-config ~/mirror_config.py
 ```
 
-在 Mac 打开 [本地控制台](http://127.0.0.1:8765)，确认三路画面已就绪。填入抓取指令，确认双臂运动范围和回零路径清空后点击「开始推理」。程序先回零，再运行 `dm05`。
+默认调用 `dm05`。如果要调用已经在 MaaS 部署且正在运行的微调模型，启动时用 `--model-id` 指定部署详情中的模型 ID。可按[全流程文档](MaaS_Mirror_全流程.md#6-部署微调模型并在-dos-w1-上调用)准备模型和真机测试。
+
+```bash
+printf 'MaaS 模型 ID: '
+read -r MAAS_MODEL_ID
+python ~/mirror-console/server.py --robot-config ~/mirror_config.py --model-id "$MAAS_MODEL_ID"
+```
+
+在 Mac 打开 [本地控制台](http://127.0.0.1:8765)，核对页面中的模型 ID 和三路画面。填入抓取指令，确认双臂运动范围和回零路径清空后点击「开始推理」。程序先回零，再调用页面显示的模型。
 
 需要正常停止时，先确认回零路径畅通，再点击「停止并回零」。SDK 会停止继续下发推理动作，等待已开始的操作返回，然后回零。后端日志 `POST /api/stop ... 202` 表示已接收请求。观察页面从「正在停止」或「正在回零」回到「待机」，并确认双臂停稳。控制连接发生故障时，查看工控机终端日志并在现场检查。异常运动使用现场实体急停。
 

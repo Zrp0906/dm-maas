@@ -84,6 +84,8 @@
       background: var(--surface); padding: 17px;
     }
     .panel h2 { margin-bottom: 15px; }
+    .model-summary { margin-bottom: 13px; color: var(--muted); font-size: 12px; }
+    .model-summary code { color: var(--blue); overflow-wrap: anywhere; }
     .field { display: grid; gap: 7px; margin-bottom: 13px; }
     .field label { color: #dbe5f4; font-size: 13px; font-weight: 600; }
     textarea, input {
@@ -168,6 +170,7 @@
 
       <section class="panel" aria-labelledby="task-heading">
         <h2 id="task-heading">控制推理</h2>
+        <p class="model-summary">模型 ID <code id="model-id">—</code></p>
         <form id="task">
           <div class="field">
             <label for="prompt">抓取指令</label>
@@ -228,6 +231,7 @@
       $("mode").hidden = false;
       $("mode").textContent = next.demo ? "模拟模式" : "真机模式";
       $("mode").dataset.tone = next.demo ? "amber" : "green";
+      $("model-id").textContent = next.model_id ?? "—";
       $("hardware-hint").textContent = next.demo
         ? "模拟任务使用三路合成示例画面。"
         : "开始、点击「停止并回零」或在工控机终端按 Ctrl+C 正常退出时，双臂会回零。紧急情况使用现场实体急停。";

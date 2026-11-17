@@ -4,6 +4,12 @@
 /mirror-cameras/local/
 /mirror_config.py
 
+# Local robot recordings, conversion tools, and output
+/揭开塑料盒盖并将钥匙放入盒内/
+/20261026.zip
+/keys_in_plastic_box_probe/
+/dataset-work/
+
 # macOS metadata
 .DS_Store
 
@@ -16,3 +22,7 @@ __pycache__/
 .env
 .env.*
 !.env.example
+
+# Local training logs
+safe.txt
+/训练日志/
